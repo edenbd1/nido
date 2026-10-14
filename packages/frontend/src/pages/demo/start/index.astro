@@ -47,18 +47,15 @@ import Nest from "../../../components/Nest.astro";
   async function main() {
     const params = new URLSearchParams(window.location.search);
     const providedKey = params.get("key");
-
     if (!eventTokenMatches(DEMO_EVENT_TOKEN, providedKey)) {
-      showError("This link isn't valid. Please scan the QR code at the booth.");
+      showError("This link isn't valid. Please find someone from The Aha Company to scan the QR code.");
       return;
     }
 
     const saltHex = generateSaltHex();
 
-    // Address prediction and visit registration are both best-effort: losing
-    // the receipt correlation should never block the attendee from getting a
-    // real, funded account. Only the event-token check above is allowed to
-    // stop this flow.
+    // This block predicts the address & registers the user's visit so that we're able to correlate this with the receipt printing.
+    // We are swallowing this error here because we don't want to stop the nido set up flow just for the receipt correlation.
     try {
       $status.textContent = "Reserving your address…";
       const address = await predictAddress(saltHex);
