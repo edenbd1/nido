@@ -1,5 +1,5 @@
 import { Account, Address, Asset, Contract, Networks, TransactionBuilder, rpc, scValToNative } from "@stellar/stellar-sdk";
-import { getPending, visits, type Visit } from "./store.js";
+import { getPending, markFunded, type Visit } from "./store.js";
 import { printReceipt } from "./printer.js";
 
 const RPC_URL = process.env.RPC_URL ?? "https://soroban-testnet.stellar.org";
@@ -47,9 +47,8 @@ export async function pollOnce(
     try {
       const balance = await getBalance(visit.address, server);
       if (balance > 0n) {
-        const funded: Visit = { ...visit, status: "funded" };
-        visits.set(id, funded);
-        onFunded(id, funded);
+        const funded = markFunded(id);
+        if (funded) onFunded(id, funded);
       }
     } catch (err) {
       console.warn(`[poller] balance check failed for visit ${id}`, err);

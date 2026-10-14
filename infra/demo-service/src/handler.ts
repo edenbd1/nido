@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { visits } from "./store.js";
+import { addVisit } from "./store.js";
 
 const CONTRACT_ADDRESS_RE = /^C[A-Z2-7]{55}$/;
 
@@ -15,6 +15,6 @@ export function registerVisit(body: unknown): { status: number; body: unknown } 
   }
 
   const visit = randomUUID();
-  visits.set(visit, { address, status: "pending", createdAt: Date.now() });
+  addVisit(visit, { address, status: "pending", createdAt: Date.now() });
   return { status: 201, body: { visit } };
 }

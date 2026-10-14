@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { registerVisit } from "./handler.js";
-import { visits } from "./store.js";
+import { clearVisits, getVisit, visitCount } from "./store.js";
 
 const VALID_ADDRESS = "C" + "A".repeat(55);
 
-// `visits` is shared, module-level mutable state — reset it before every
-// test so one test's registrations can't leak into (or be counted by)
-// another.
+// Shared, module-level state in the store — reset it before every test so
+// one test's registrations can't leak into (or be counted by) another.
 beforeEach(() => {
-  visits.clear();
+  clearVisits();
 });
 
 describe("registerVisit", () => {
@@ -25,7 +24,7 @@ describe("registerVisit", () => {
       body: { visit: string };
     };
 
-    const stored = visits.get(result.body.visit);
+    const stored = getVisit(result.body.visit);
     expect(stored).toMatchObject({ address: VALID_ADDRESS, status: "pending" });
   });
 
@@ -34,7 +33,7 @@ describe("registerVisit", () => {
     const second = registerVisit({ address: VALID_ADDRESS }) as { body: { visit: string } };
 
     expect(first.body.visit).not.toBe(second.body.visit);
-    expect(visits.size).toBe(2);
+    expect(visitCount()).toBe(2);
   });
 
   it("rejects a missing address with 400 and stores nothing", () => {
@@ -42,21 +41,21 @@ describe("registerVisit", () => {
 
     expect(result.status).toBe(400);
     expect(result.body).toMatchObject({ error: expect.any(String) });
-    expect(visits.size).toBe(0);
+    expect(visitCount()).toBe(0);
   });
 
   it("rejects a non-string address with 400", () => {
     const result = registerVisit({ address: 12345 });
 
     expect(result.status).toBe(400);
-    expect(visits.size).toBe(0);
+    expect(visitCount()).toBe(0);
   });
 
   it("rejects an address that doesn't match the C-address shape with 400", () => {
     const result = registerVisit({ address: "not-a-real-address" });
 
     expect(result.status).toBe(400);
-    expect(visits.size).toBe(0);
+    expect(visitCount()).toBe(0);
   });
 
   it("rejects a body that isn't an object, without throwing", () => {
@@ -69,6 +68,6 @@ describe("registerVisit", () => {
     expect(() => registerVisit("oops")).not.toThrow();
     expect(registerVisit("oops").status).toBe(400);
 
-    expect(visits.size).toBe(0);
+    expect(visitCount()).toBe(0);
   });
 });
