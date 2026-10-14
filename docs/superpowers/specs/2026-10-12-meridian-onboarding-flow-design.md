@@ -124,6 +124,34 @@ sequenceDiagram
    - A hard spend ceiling on the treasury call for the whole event, independent of the above, so a worst-case leak is bounded to a known number.
    - Only live during the event's actual dates/hours.
 
+**Proof of presence (brainstorm, not decided):** the shared token above approximates "only our QR code," but doesn't prove the *person* was there. Options, strongest first:
+- **Staff prints a one-time code on the kiosk's own printer**, handed to the attendee, who scans it to start — a human verified presence before the code existed. Strongest option, but not self-serve.
+- **Network-binding** (see "Connectivity ideas") — physical wifi range as the proof, fully self-serve.
+- **A token on the kiosk screen that rotates every few minutes** — self-serve, closes the "shared a screenshot later" gap the static token has.
+- NFC tap — looks appealing but isn't actually stronger than a QR: once tapped, the resulting URL is just as shareable afterward.
+
+The staff-printed option reuses hardware already in the plan (no new printer needed) and bookends the experience with paper — an admission slip, then the final receipt. It needs one real change: the event-token check moves from a pure client-side string compare (`eventTokenMatches` against a fixed build-time value) to server-side, single-use state — naturally folded into the existing `POST /visits` call (send the code alongside the address; the demo service tracks issued/used codes and rejects a reused one) rather than a separate endpoint.
+
+## Mainnet readiness: what this demo actually needs
+
+From `docs/MAINNET_READINESS.md` — the full go/no-go bar is higher than what a
+small, invited/trusted crowd needs.
+
+**Actually blocking (demo can't work without):**
+- **A3** — mainnet registry + factory deployed and wired. Without it, `fetchFactoryAddress()`/`get_c_address` has nothing to resolve on mainnet.
+- Not in that doc, but found while building this: `new-account/`'s hardcoded testnet `RPC_URL`/`Networks.TESTNET` + the friendbot-only funding path both need a mainnet swap (see the mainnet constraint above).
+
+**Worth doing given it's real money, even for friends:**
+- **A4** — relayer keys off disk into KMS. One key currently sponsors/creates every account.
+- **B1 (governance)** — factory admin behind a multisig, not a single deploying key.
+
+**Not needed for this demo:**
+- **A1** (ZK recovery mainnet params) — only matters if attendees set up recovery; the demo can just skip that step.
+- **C/D/F** (reproducible builds, audit docs, test coverage) — audit-grade bar, not functional for a weekend demo.
+
+A2 (setup secret off URL query params) is already mostly done and is exactly
+what `/demo/start` already depends on.
+
 ## So what: beyond "free money" (brainstorm)
 
 Receiving XLM for free doesn't demonstrate anything about *this* wallet versus any other wallet — it's the same payoff a faucet gives. The fix is to make spending it the point, not holding it.
@@ -131,6 +159,7 @@ Receiving XLM for free doesn't demonstrate anything about *this* wallet versus a
 - **Best, if feasible: pay a real vendor.** Partner with the coffee cart or merch table to accept a Nido scan-to-pay for something small. The story becomes "I scanned a QR code 30 seconds ago, had no wallet, and just paid for my coffee with it" — a demo of money moving, not a wallet sitting there. The receipt stops being a metaphor too: it's an actual receipt for an actual purchase, printed at the point of sale.
 - **Fallback: a booth-owned kiosk/vending moment.** A small vending machine, raffle entry, or "mint a badge" station at the booth itself, charging a tiny real amount. Same effect — spend, not just hold — without needing a vendor partnership or anything outside our control.
 - **Layer for the technical crowd: reveal the scoping.** After the basic flow, an optional follow-up screen could show that the funded wallet wasn't just a bare balance — the session key that just paid was scoped to that one vendor, up to that one amount, and couldn't have spent anywhere else. That's the one thing a self-custody wallet genuinely can't show. Worth surfacing for anyone who lingers, even if the walk-up-and-go crowd never sees it.
+- **The receipt as the claim ticket.** Whatever gets redeemed above (coffee, swag, a raffle entry), the printed receipt can *be* the claim ticket — a physical punch at redemption is the anti-reuse control, no backend tracking needed for that part.
 
 ## Connectivity ideas (parked)
 

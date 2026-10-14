@@ -31,7 +31,10 @@ export async function registerDemoVisit(
   serviceUrl: string,
   address: string,
 ): Promise<DemoVisitRegistration | null> {
-  if (!serviceUrl) return null;
+  if (!serviceUrl) {
+    console.warn("[nido demo] PUBLIC_DEMO_SERVICE_URL is not set — skipping visit registration.");
+    return null;
+  }
 
   const resp = await fetch(`${serviceUrl.replace(/\/+$/, "")}/visits`, {
     method: "POST",
