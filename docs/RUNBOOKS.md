@@ -176,15 +176,59 @@ Not done by the script:
 
 ### 2.3 Front end
 
-A push to `main` deploys (`deploy.yml`). The build uses `perch.TESTNET` unless
-the `PUBLIC_PERCH_DEPLOYMENT` repository variable overrides it with a
-manifest JSON or `none`. An override is not checked against Perch's manifest
-(THREAT_MODEL 9).
+A push to `main` auto-deploys test.nido.fyi (`deploy-testnet.yml`); nido.fyi
+is a separate, manual `workflow_dispatch` (`deploy-production.yml`), so a
+production cutover is never a side effect of a merge. Both build with
+`perch.TESTNET` by default unless the `PUBLIC_PERCH_DEPLOYMENT` repository
+variable overrides it with a manifest JSON or `none`; mainnet builds have no
+default deployment until a `PUBLIC_PERCH_DEPLOYMENT` manifest for mainnet
+exists (`lib/recovery/deployment.ts`). An override is not checked against
+Perch's manifest (THREAT_MODEL 9).
 
 **Order matters.** The deployment a wallet build names must exist before the
 build reaches `main`. Accounts minted by an older factory are not migrated;
 they keep the code and verifier they were minted with
 ([DEPLOYED.md](../DEPLOYED.md#compatibility-appendix)).
+
+### 2.4 Mainnet relayer — first deploy
+
+Merging `infra/relayer/fly.mainnet.toml` and `deploy-relayer-mainnet.yml`
+does not create a running mainnet relayer by itself — nothing deploys
+automatically. Do these in order:
+
+1. Create both Fly apps (`fly deploy` does not create them for you):
+   ```
+   fly apps create nido-mainnet
+   fly apps create nido-mainnet-redis
+   ```
+2. Deploy Redis first — the relayer needs it to already exist:
+   ```
+   fly deploy infra/relayer-redis --config infra/relayer-redis/fly.mainnet.toml
+   ```
+3. Set up Turnkey for mainnet, then generate and set the relayer's secrets
+   (these are Fly secrets, not `fly.toml` values — see
+   `infra/relayer/README.md`'s "Secret Handling" section for how to
+   generate each one):
+   ```
+   fly secrets set -a nido-mainnet \
+     API_KEY=... \
+     STORAGE_ENCRYPTION_KEY=... \
+     PLUGIN_ADMIN_SECRET=... \
+     TURNKEY_API_PRIVATE_KEY=...
+   ```
+4. Pick real `FEE_LIMIT` and `FUNDER_TOPUP_STROOPS` values and update
+   `infra/relayer/fly.mainnet.toml` — the committed values are testnet's,
+   carried over only as placeholders (real money needs its own numbers).
+5. Deploy the relayer (or trigger `deploy-relayer-mainnet.yml` in GitHub
+   Actions instead):
+   ```
+   fly deploy infra/relayer --config infra/relayer/fly.mainnet.toml
+   ```
+6. Fund and activate the channel accounts, same process as testnet's (see
+   `infra/relayer/README.md`'s channel-activation section). A deployed but
+   unactivated relayer can't relay anything yet.
+
+Only after all six steps does a mainnet relayer actually work.
 
 ## 3. Governance
 
