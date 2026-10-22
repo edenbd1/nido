@@ -22,14 +22,13 @@ import { shortAddr } from "./address";
 import { formatXlm } from "./money";
 import { createNido } from "./createNido";
 import { syncNidoStorageViaBridge } from "./nidoSharedStorage";
+import { RPC_URL, NETWORK_PASSPHRASE } from "./network";
 import { allowAccountCreation } from "./allowAccountCreation";
 import { verifyNewNidoAccount } from "./newAccount/verifyNewAccount";
 
-const RPC_URL = "https://soroban-testnet.stellar.org";
-export const NAME_NETWORK = "Test SDF Network ; September 2015";
 // Every "create a Nido" entry point this switcher offers (first-time setup
 // and "create another") shows a "Coming soon" state on hostnames
-// account creation isn't open on yet (see accountCreationOpen.ts).
+// account creation isn't open on yet (see allowAccountCreation.ts).
 const creationOpen = allowAccountCreation(window.location.hostname);
 
 // Resolve the name-registry contract id once per page load (memoized promise),
@@ -37,7 +36,10 @@ const creationOpen = allowAccountCreation(window.location.hostname);
 // name.
 let nameRegistryIdPromise: Promise<string> | null = null;
 export function nameRegistryId(): Promise<string> {
-  return (nameRegistryIdPromise ??= fetchRegistryAddress("name-registry"));
+  return (nameRegistryIdPromise ??= fetchRegistryAddress("name-registry", {
+    rpcUrl: RPC_URL,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  }));
 }
 
 const esc = (s: string) =>
@@ -238,7 +240,7 @@ export function mountNidoSwitcher(root: HTMLElement, opts: MountOptions = {}): v
   // persist the hit so later renders are instant. Mirrors loadBalances().
   async function resolveNames(rows: MyNidoRow[]) {
     const lookup = async (contractId: string) =>
-      lookupName(RPC_URL, await nameRegistryId(), contractId, NAME_NETWORK);
+      lookupName(RPC_URL, await nameRegistryId(), contractId, NETWORK_PASSPHRASE);
     const resolved = await resolveMissingNames(rows, lookup, saveAccountName);
     resolved.forEach((name, contractId) => {
       const rowEl = panel!.querySelector<HTMLAnchorElement>(

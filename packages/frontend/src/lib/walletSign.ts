@@ -23,7 +23,6 @@
 import {
   rpc,
   TransactionBuilder,
-  Networks,
   xdr,
   Transaction,
   FeeBumpTransaction,
@@ -50,7 +49,7 @@ import {
 } from './policyChainFetch.js';
 import { signatureExpirationOffset } from './relayerClient';
 import { deriveMessageChallenge } from './messageSigning.js';
-import { latestLedgerSequence } from './network.js';
+import { RPC_URL, NETWORK_PASSPHRASE, latestLedgerSequence } from './network.js';
 import {
   accountAuthEntry,
   authEntryExpiryProblem,
@@ -59,8 +58,6 @@ import {
   reviewAuthEntry,
   type AuthNode,
 } from './signing/authReview.js';
-
-const RPC_URL = 'https://soroban-testnet.stellar.org';
 
 /** How many rule-0 signatures a ceremony must collect, given the rule's
  *  on-chain state. Policy-less multi-signer rules are N-of-N under OZ
@@ -158,7 +155,7 @@ export async function previewTransactionAuth(args: {
   networkPassphrase?: string;
   nameRegistry?: string;
 }): Promise<{ invocationXdr: string; tree: AuthNode }> {
-  const networkPassphrase = args.networkPassphrase ?? Networks.TESTNET;
+  const networkPassphrase = args.networkPassphrase ?? NETWORK_PASSPHRASE;
   const tx = parseSorobanTx(args.txXdr, networkPassphrase);
   const { authEntry } = await simulateAccountAuth(new rpc.Server(RPC_URL), tx, args.account, networkPassphrase);
   const invocation = authEntry.rootInvocation();
@@ -187,7 +184,7 @@ export async function signTransactionXdr(args: {
   /** Progress callback for multi-passkey ceremonies ("signature 1 of 2…"). */
   onStatus?: (msg: string) => void;
 }): Promise<string> {
-  const networkPassphrase = args.networkPassphrase ?? Networks.TESTNET;
+  const networkPassphrase = args.networkPassphrase ?? NETWORK_PASSPHRASE;
   const cred = loadCredential(args.account);
   if (!cred) throw new Error('No passkey registered for this account.');
 
@@ -550,7 +547,7 @@ export async function signAuthEntryXdr(args: { account: string; authEntryXdr: st
   }
   // The same checks the review ran, enforced here: a Soroban authorization
   // for this network, with a tree a dApp may ask for, expiring soon.
-  const checked = reviewAuthEntry(args.authEntryXdr, args.account, Networks.TESTNET);
+  const checked = reviewAuthEntry(args.authEntryXdr, args.account, NETWORK_PASSPHRASE);
   if (!checked.ok) throw new Error(checked.reason);
   const expiry = authEntryExpiryProblem(checked.review.expirationLedger, await latestLedgerSequence());
   if (expiry) throw new Error(expiry);
@@ -559,7 +556,7 @@ export async function signAuthEntryXdr(args: { account: string; authEntryXdr: st
   const scheme = await perch.authDigestScheme({
     account: args.account,
     rpcUrl: RPC_URL,
-    networkPassphrase: Networks.TESTNET,
+    networkPassphrase: NETWORK_PASSPHRASE,
   });
   const digest = new Uint8Array(
     computeAuthDigest(args.account, signaturePayload, [resolved.ruleId], scheme),

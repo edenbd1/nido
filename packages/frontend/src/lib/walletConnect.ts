@@ -38,10 +38,9 @@ import { nidoKey } from '@nidohq/passkey-sdk';
 import { StellarWalletsKit, type ModuleInterface } from '@creit.tech/stellar-wallets-kit';
 import { NidoModule, NIDO_ID } from '@nidohq/stellar-wallets-kit-module';
 import { apexHostForHost } from './nidoSharedStorage';
+import { NETWORK_PASSPHRASE } from './network.js';
 
 export { NIDO_ID };
-
-const TESTNET_PASSPHRASE = 'Test SDF Network ; September 2015';
 const sessionKey = () => nidoKey('walletSession');
 const LEGACY_NIDO_ID = 'g2c';
 
@@ -261,7 +260,7 @@ export function deriveBase(
  */
 export async function initWalletKit(params: InitWalletKitParams = {}): Promise<void> {
   if (inited) return;
-  const networkPassphrase = params.networkPassphrase ?? TESTNET_PASSPHRASE;
+  const networkPassphrase = params.networkPassphrase ?? NETWORK_PASSPHRASE;
   const base = params.base ?? deriveBase();
 
   const standard =
