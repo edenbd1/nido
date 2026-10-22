@@ -1,7 +1,7 @@
 import express from "express";
 import { InviteClient } from "./inviteClient.js";
 import { buildInvitation } from "./invitationHandler.js";
-import { FilePrinter } from "./printer.js";
+import { createPrinter } from "./printerFactory.js";
 import { startReceiptPolling } from "./receiptPoller.js";
 import { requestLogger } from "./requestLogger.js";
 
@@ -13,7 +13,7 @@ const RECEIPT_POLL_INTERVAL_MS = Number(process.env.RECEIPT_POLL_INTERVAL_MS ?? 
 const PRINT_OUTPUT_DIR = process.env.PRINT_OUTPUT_DIR ?? "./print-jobs";
 
 const client = new InviteClient(INVITE_API_URL, INVITE_API_KEY);
-const printer = new FilePrinter(PRINT_OUTPUT_DIR);
+const printer = createPrinter(PRINT_OUTPUT_DIR);
 
 const app = express();
 app.use(requestLogger);
@@ -35,11 +35,9 @@ app.post("/invitations", (_req, res) => {
     const { code } = await client.createCode();
     const invitation = await buildInvitation(code, FRONTEND_BASE_URL);
 
-    await printer.print({
-      title: "Scan to create your Nido!",
-      lines: [invitation.url],
-      qrDataUrl: invitation.qrDataUrl,
-    });
+    // Printing the invitation QR itself is on hold for now — the confirmation
+    // receipt (receiptPoller.ts) is the one in active use. The admin page
+    // below still shows the QR on screen so staff can hand it off either way.
 
     res.type("html").send(`<!doctype html>
 <html>
