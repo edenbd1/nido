@@ -43,7 +43,7 @@
       "id": "fund-signer",
       "type": "turnkey",
       "config": {
-        "api_public_key": "02782029120f7408b3cac1fc9f57a5987dda59dba1458a5e5e815de60f5fd10a5c",
+        "api_public_key": "02d030eef95cdb52331075684343f64831cb4266c66285e56bdcacdb2e69fbd9a6",
         "api_private_key": { "type": "env", "value": "TURNKEY_API_PRIVATE_KEY" },
         "organization_id": "ab5ca46a-17b2-47a1-95fa-4aff7d413d12",
         "private_key_id": "GCYVFKNTVZA5AY3KJWPW4NU4247UDDFFOCT4C3WCOKUDQQABIZRZ46I3",
@@ -54,7 +54,7 @@
       "id": "fee-payer-signer",
       "type": "turnkey",
       "config": {
-        "api_public_key": "02782029120f7408b3cac1fc9f57a5987dda59dba1458a5e5e815de60f5fd10a5c",
+        "api_public_key": "02d030eef95cdb52331075684343f64831cb4266c66285e56bdcacdb2e69fbd9a6",
         "api_private_key": { "type": "env", "value": "TURNKEY_API_PRIVATE_KEY" },
         "organization_id": "ab5ca46a-17b2-47a1-95fa-4aff7d413d12",
         "private_key_id": "GDF5IIBWEZIEBA43XAZSOM5A3X6KKZ7CCYX5K7SCO4M4DJGOPEPK7UOL",
@@ -65,7 +65,7 @@
       "id": "channel-001-signer",
       "type": "turnkey",
       "config": {
-        "api_public_key": "02782029120f7408b3cac1fc9f57a5987dda59dba1458a5e5e815de60f5fd10a5c",
+        "api_public_key": "02d030eef95cdb52331075684343f64831cb4266c66285e56bdcacdb2e69fbd9a6",
         "api_private_key": { "type": "env", "value": "TURNKEY_API_PRIVATE_KEY" },
         "organization_id": "ab5ca46a-17b2-47a1-95fa-4aff7d413d12",
         "private_key_id": "GAPGVNKNFHOCER46FQ4WHMWXWA2DLUYY3HYXTBSIPIMPMRCE7Y6URAGA",
@@ -76,7 +76,7 @@
       "id": "channel-002-signer",
       "type": "turnkey",
       "config": {
-        "api_public_key": "02782029120f7408b3cac1fc9f57a5987dda59dba1458a5e5e815de60f5fd10a5c",
+        "api_public_key": "02d030eef95cdb52331075684343f64831cb4266c66285e56bdcacdb2e69fbd9a6",
         "api_private_key": { "type": "env", "value": "TURNKEY_API_PRIVATE_KEY" },
         "organization_id": "ab5ca46a-17b2-47a1-95fa-4aff7d413d12",
         "private_key_id": "GBYC4XMYN7WNBWZ363M3MD6BWUGIX633EIOTOOASSZ3IZUGS44HBA7JZ",
