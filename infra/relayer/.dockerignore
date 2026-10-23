@@ -1,0 +1,7 @@
+# A local `pnpm install` in plugins/channels (e.g. to regenerate the
+# lockfile) leaves node_modules on disk, which otherwise gets COPYed into the
+# build context and collides with the Dockerfile's own clean
+# `pnpm install --prod --frozen-lockfile` (no-TTY purge refusal).
+plugins/channels/node_modules
+plugins/funder/node_modules
+plugins/manager/node_modules

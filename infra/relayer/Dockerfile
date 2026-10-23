@@ -23,6 +23,10 @@ COPY plugins/funder /app/plugins/funder
 RUN cd /app/plugins/funder && pnpm install --prod --frozen-lockfile \
     && chown -R nonroot /app/plugins/funder
 
+COPY plugins/manager /app/plugins/manager
+RUN cd /app/plugins/manager && pnpm install --prod --frozen-lockfile \
+    && chown -R nonroot /app/plugins/manager
+
 COPY --chown=nonroot config/config.json /app/config/config.json
 COPY --chown=nonroot config/networks /app/config/networks
 COPY --chown=nonroot Caddyfile /app/Caddyfile
