@@ -1,8 +1,9 @@
 // The Docs section's pages, in reading order. One source for the sidebar,
 // the previous/next links, the docs home and /docs/llms.txt. Each entry is a
-// Markdown page at src/pages/docs/<slug>.md (the home is index.md);
-// src/lib/docs/docs.test.ts checks the two stay in step and that every
-// internal link in the pages resolves.
+// Markdown page at src/pages/docs/<slug>.md (the home is index.md):
+// docTexts() in llms.ts fails the build when an entry has no page, and
+// tests/e2e/ui/docs.spec.ts checks each entry's built page, its links and
+// its anchors.
 
 export interface DocPage {
   /** File name under src/pages/docs/ without `.md`; "index" is /docs/. */
