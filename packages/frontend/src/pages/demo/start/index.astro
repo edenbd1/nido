@@ -97,7 +97,14 @@ import Nest from "../../../components/Nest.astro";
     }
 
     $status.textContent = "Taking you there…";
-    window.location.replace(`//${window.location.host}/new-account/?setup=1#salt=${saltHex}`);
+    // Carry the invitation code forward: new-account/'s submitCreateAccount
+    // sends it to the relayer's manager plugin, which is what actually
+    // enforces it (this early check is a fast, good-UX gate, not the real
+    // security boundary — a modified client could skip straight to
+    // new-account/, so the real enforcement has to live at creation time).
+    window.location.replace(
+      `//${window.location.host}/new-account/?setup=1&invitationCode=${encodeURIComponent(invitationCode)}#salt=${saltHex}`,
+    );
   }
 
   void main();

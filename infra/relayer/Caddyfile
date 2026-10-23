@@ -9,7 +9,7 @@
 :8080 {
 	@preflight {
 		method OPTIONS
-		path /relay /fund
+		path /relay /fund /create-account
 	}
 	handle @preflight {
 		header Access-Control-Allow-Origin "*"
@@ -71,6 +71,27 @@
 		request_header Authorization "Bearer {$API_KEY}"
 		request_header x-api-key "nido-wallet"
 		rewrite * /api/v1/plugins/funder/call
+		reverse_proxy 127.0.0.1:8090
+	}
+	@create_account {
+		method POST
+		path /create-account
+	}
+	handle @create_account {
+		# Tighter than even /fund: a real visitor only ever needs this once (it
+		# consumes their one-time invite code and creates their one account),
+		# and it spends the manager's own XLM on fees.
+		rate_limit {
+			zone create_account_per_ip {
+				key {http.request.header.Fly-Client-IP}
+				events 10
+				window 1h
+			}
+		}
+		header Access-Control-Allow-Origin "*"
+		request_header Authorization "Bearer {$API_KEY}"
+		request_header x-api-key "nido-wallet"
+		rewrite * /api/v1/plugins/manager/call
 		reverse_proxy 127.0.0.1:8090
 	}
 	handle /api/v1/health {

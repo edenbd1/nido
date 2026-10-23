@@ -17,15 +17,17 @@ The deployed stack is:
   made the relayer's always-on worker polling expensive (it hit the budget cap
   and throttled, taking the relayer down). It's a sibling app, not a sidecar,
   because the relayer's Wolfi/Chainguard base image has no `redis` apk package.
-- four Turnkey-backed Stellar signers (treasury fund + fee-payer + two
-  channels), each a separate Turnkey wallet account under the same org/API
-  user
+- five Turnkey-backed Stellar signers (treasury fund + fee-payer + two
+  channels + the factory's manager), each a separate Turnkey wallet account
+  under the same org/API user
 - single Fly machine in org `aha-684`, region `iad`
 
 Public browser traffic only reaches:
 
 - `GET https://nido.fly.dev/api/v1/health`
 - `POST https://nido.fly.dev/relay`
+- `POST https://nido.fly.dev/fund`
+- `POST https://nido.fly.dev/create-account`
 
 The OpenZeppelin authenticated API is not exposed publicly. Use a local Fly
 tunnel for management operations.
@@ -55,6 +57,30 @@ tunnel for management operations.
 9. Client polls the relayer transaction id until the plugin reports
    `confirmed`, `failed`, or `expired`.
 
+### Direct-RPC plugins (`funder`, `manager`)
+
+`POST /fund` and `POST /create-account` don't go through Channels at all —
+each builds, simulates, and assembles its own transaction, asks the relayer
+to sign the assembled envelope via `relayer.signTransaction` (Turnkey-backed,
+never touches the relayer's own sequence-assignment code — see "Versioning"
+below for why that matters), and submits straight to Soroban RPC itself. The
+caller polls Soroban RPC directly for confirmation (`server.getTransaction`),
+not the relayer's own transaction-status API, since that transaction was
+never tracked by the relayer in the first place.
+
+`manager` (`infra/relayer/plugins/manager`) is the enforcement point for
+invite-gated account creation: `contracts/factory`'s optional
+`manager: Option<Address>`, once set via `set_manager`
+(`scripts/set-factory-manager.sh` — not run yet; see that script's header),
+requires this address's authorization on every `create_account`. The plugin
+validates+claims the caller's invite code against `infra/invite`'s existing
+Checker before it ever signs, and makes the manager the transaction's own
+source account — Soroban satisfies `require_auth()` for an Address that IS
+the tx's source implicitly, from the ordinary transaction signature alone,
+so no separate signed authorization entry is needed (the relayer's only
+signing primitive signs a transaction hash, not a Soroban auth-entry hash —
+the two aren't interchangeable).
+
 ## Current Testnet Accounts
 
 These are public keys only. Secrets live in 1Password and Fly secrets.
@@ -65,6 +91,7 @@ These are public keys only. Secrets live in 1Password and Fly secrets.
 | `channels-fee-payer` | fee-bump fee source for channel deploys; simulation source | `GDF5IIBWEZIEBA43XAZSOM5A3X6KKZ7CCYX5K7SCO4M4DJGOPEPK7UOL` |
 | `channel-001` | inner transaction source | `GAPGVNKNFHOCER46FQ4WHMWXWA2DLUYY3HYXTBSIPIMPMRCE7Y6URAGA` |
 | `channel-002` | inner transaction source | `GBYC4XMYN7WNBWZ363M3MD6BWUGIX633EIOTOOASSZ3IZUGS44HBA7JZ` |
+| `manager` | authorizes `create_account` on the factory, once `set_manager` activates the gate (not yet done — see "Direct-RPC plugins" above) | **PLACEHOLDER** `GAG54D2QJUCTUCFVQ4JH6UOL33NST52XBMD7N2UTBVPWURBKAJAWUMRL` — not a real Turnkey wallet account yet; create the real one in the Turnkey console (below) and update this row + `config/config.json` |
 
 `fund` used to be named `channels-fund` and doubled as the fee-bump source; that
 role moved to the new `channels-fee-payer` so the names match what each
@@ -554,7 +581,10 @@ Before attempting this upgrade again:
   (keyed on `Fly-Client-IP`, since Caddy sits behind Fly's proxy) via the `caddy-ratelimit`
   plugin (pinned `@v0.1.0`) compiled into the image (`xcaddy` stage in the `Dockerfile`). This
   raises the cost of one client draining the shared daily sponsor budget. Layered under the
-  relayer's own global 20 req/s ceiling (`RATE_LIMIT_REQUESTS_PER_SECOND`).
+  relayer's own global 20 req/s ceiling (`RATE_LIMIT_REQUESTS_PER_SECOND`). `/fund` and
+  `/create-account` are both tighter, **10 requests/hour per client IP**: each moves real
+  XLM (`/fund`) or consumes a one-time invite code and creates one account (`/create-account`),
+  so a real visitor never legitimately needs either more than a handful of times.
   - **Trust assumption:** soundness depends on fly-proxy **overwriting** `Fly-Client-IP` on
     inbound public traffic (verify on Fly); a client-supplied header would let an attacker
     rotate it and defeat the bucket. Even trusted, per-IP keying is evadable via an IPv6 `/64`,
@@ -576,3 +606,8 @@ Before attempting this upgrade again:
   requests.
 - The relayer is now used for account creation; recovery rotation still has its
   own submission flow.
+- The factory's invite-code gate is built (this plugin) but not yet active:
+  the live testnet factory still has `manager: null` (anyone may create an
+  account) until `scripts/set-factory-manager.sh` is deliberately run — see
+  that script's header before running it, since it blocks every account
+  creation until the full flow above is proven working end to end.
