@@ -81,6 +81,14 @@ so no separate signed authorization entry is needed (the relayer's only
 signing primitive signs a transaction hash, not a Soroban auth-entry hash —
 the two aren't interchangeable).
 
+Needs three env vars `fly.toml` doesn't set by default — the plugin throws
+immediately on every call without them: `FACTORY_ADDRESS` and
+`INVITE_API_URL` (plain `[env]` values, neither is sensitive) plus
+`INVITE_API_KEY` as a **Fly secret** (`fly secrets set INVITE_API_KEY=...
+-a nido` — the same value already set as `infra/invite`'s own `API_KEY`;
+this isn't part of the original bootstrap secrets list above since the
+plugin postdates it).
+
 ## Current Testnet Accounts
 
 These are public keys only. Secrets live in 1Password and Fly secrets.

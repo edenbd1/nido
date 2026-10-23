@@ -42,6 +42,15 @@ primary_region = "iad"
   # Fixed per-account topup from the `fund` treasury, read by the `funder` plugin
   # This is not client-controlled.
   FUNDER_TOPUP_STROOPS = "50000000"
+  # Read by the `manager` plugin (infra/relayer/plugins/manager) — neither is
+  # sensitive (a public contract address, a public base URL), so both are
+  # plain env vars here rather than Fly secrets. INVITE_API_KEY (the
+  # matching x-api-key for that URL) IS sensitive and is NOT set here — it
+  # must be `fly secrets set INVITE_API_KEY=... -a nido` separately (same
+  # value already set as infra/invite's own API_KEY secret). Without all
+  # three, the manager plugin throws immediately on every call.
+  FACTORY_ADDRESS = "CDDIW3F63PB6ZKMJN7CCGJSCYXTAVAVEEYNS36K2YFEJH7GQ3ADVZSVS"
+  INVITE_API_URL = "https://nido-invite.fly.dev"
 
 [http_service]
   internal_port = 8080
