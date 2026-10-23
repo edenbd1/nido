@@ -1,9 +1,13 @@
 import express from "express";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { InviteClient } from "./inviteClient.js";
 import { buildInvitation } from "./invitationHandler.js";
 import { createPrinter } from "./printerFactory.js";
 import { startReceiptPolling } from "./receiptPoller.js";
 import { requestLogger } from "./requestLogger.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const PORT = Number(process.env.PORT ?? 4000);
 const INVITE_API_URL = (process.env.INVITE_API_URL ?? "http://localhost:8080").replace(/\/+$/, "");
@@ -17,17 +21,179 @@ const printer = createPrinter(PRINT_OUTPUT_DIR);
 
 const app = express();
 app.use(requestLogger);
+// Serves the Aha logo in the page footer (the same asset the printed
+// receipt uses — see escposBytes.ts). Full-res (for thermal rasterization),
+// so the page constrains its display size with CSS rather than shipping a
+// web-sized copy.
+app.use("/assets", express.static(join(__dirname, "../assets")));
+
+// Nido's own warm-nest palette and halo/mark motifs (packages/frontend/src/
+// styles/nido.css, components/Nest.astro), so the booth operator's screen
+// looks like nido.fyi's own landing page instead of bare browser defaults.
+// This is only two pages, so one inlined <style> is simpler than a build
+// step for a two-screen admin tool.
+const PAGE_STYLE = `
+  :root { color-scheme: light; }
+  body {
+    font-family: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #FFF8F0;
+    color: #2A1A12;
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    padding: 2rem;
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .halo {
+    position: fixed;
+    top: -220px;
+    right: -180px;
+    width: 460px;
+    height: 460px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(242,92,42,.28), rgba(242,92,42,0) 68%);
+    opacity: .5;
+  }
+  .card {
+    position: relative;
+    margin: auto;
+    background: #fff;
+    border: 1px solid #efe2d2;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(42, 26, 18, 0.08);
+    padding: 3rem 2.5rem;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+  h1 { font-family: "Fraunces", serif; font-weight: 800; font-size: 1.8rem; margin: 0 0 0.4rem; }
+  h1 em { font-style: italic; color: #cf4a1e; }
+  h3 { font-size: 0.85rem; font-weight: 600; color: #7a6655; margin: 1rem 0; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    background: #cf4a1e;
+    border: none;
+    border-radius: 999px;
+    padding: 0.9rem 2rem;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .btn:hover { background: #b83e14; }
+  .qr-box {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(42, 26, 18, 0.1);
+    padding: 1.25rem;
+    margin: 0.5rem 0 1.25rem;
+    display: inline-block;
+  }
+  img.qr { display: block; border-radius: 8px; }
+  code {
+    display: block;
+    word-break: break-all;
+    font-size: 0.8rem;
+    color: #7a6655;
+    margin-bottom: 1.5rem;
+  }
+  /* "Create another" is for the booth operator, not the visitor — tucked
+     into the corner (a refresh does the same thing anyway) so it doesn't
+     compete with the QR code. */
+  a.admin-link {
+    position: fixed;
+    bottom: 1rem;
+    right: 1.25rem;
+    color: #c9bba9;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  a.admin-link:hover { color: #7a6655; }
+  .foot {
+    position: relative;
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #efe2d2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .foot span { font-size: 14px; font-weight: 600; color: #7a6655; letter-spacing: .02em; }
+  .foot img { height: 84px; width: auto; }
+  .nest { height: 96px; width: 96px; margin: 0 auto 1.25rem; display: block; }
+  .nest-ring { transform-box: fill-box; transform-origin: center; }
+  .nest-ring--outer { animation: nest-rot-o 2.88s ease-in-out infinite; }
+  .nest-ring--inner { animation: nest-rot-i 2.16s ease-in-out infinite; }
+  @keyframes nest-rot-o { 0% { transform: rotate(0deg); } 40% { transform: rotate(228deg); } 100% { transform: rotate(360deg); } }
+  @keyframes nest-rot-i { 0% { transform: rotate(0deg); } 40% { transform: rotate(228deg); } 100% { transform: rotate(360deg); } }
+  .btn-logo {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0 auto;
+    cursor: pointer;
+  }
+  .btn-logo .nest { height: 180px; width: 180px; margin: 0 auto; }
+`;
+
+// Dashed coral/honey rings around a teal dot — Nido's "Nest Ring" mark
+// (components/Nest.astro), reproduced here as static markup (transparent
+// background, unlike assets/nido-logo.png which bakes in a cream app-icon
+// backdrop) since this service has no Astro build step.
+const NEST_MARK = `
+  <svg class="nest" viewBox="0 0 120 120" aria-hidden="true">
+    <circle class="nest-ring nest-ring--outer" cx="60" cy="60" r="46" fill="none" stroke="#F25C2A" stroke-width="6" stroke-dasharray="14 9" stroke-linecap="round" />
+    <circle class="nest-ring nest-ring--inner" cx="60" cy="60" r="31" fill="none" stroke="#F5A623" stroke-width="6" stroke-dasharray="11 8" stroke-linecap="round" />
+    <circle cx="60" cy="60" r="11" fill="#0E9AA8" />
+  </svg>
+`;
+
+const FOOTER = `
+  <div class="foot">
+    <span>Brought to you by</span>
+    <img src="/assets/aha-logo.png" alt="Aha Labs" />
+  </div>
+`;
+
+const page = (body: string) => `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@800&family=Hanken+Grotesk:wght@400;600&display=swap"
+    />
+    <style>${PAGE_STYLE}</style>
+  </head>
+  <body>
+    <div class="halo"></div>
+    <div class="card">${body}${FOOTER}</div>
+  </body>
+</html>`;
 
 app.get("/", (_req, res) => {
-  res.type("html").send(`<!doctype html>
-<html>
-  <body style="font-family: sans-serif; text-align: center; padding: 3rem;">
-    <h1>Nido Demo</h1>
+  res.type("html").send(
+    page(`
     <form method="POST" action="/invitations">
-      <button type="submit" style="font-size: 1.5rem; padding: 1rem 2rem;">Create Invitation</button>
+      <button type="submit" class="btn-logo" aria-label="Create Invitation">
+        ${NEST_MARK}
+      </button>
     </form>
-  </body>
-</html>`);
+    <h3>Click the logo to create a new invitation</h3>
+  `),
+  );
 });
 
 app.post("/invitations", (_req, res) => {
@@ -39,15 +205,18 @@ app.post("/invitations", (_req, res) => {
     // receipt (receiptPoller.ts) is the one in active use. The admin page
     // below still shows the QR on screen so staff can hand it off either way.
 
-    res.type("html").send(`<!doctype html>
-<html>
-  <body style="font-family: sans-serif; text-align: center; padding: 3rem;">
-    <h1>Scan this to create your Nido!</h1>
-    <img src="${invitation.qrDataUrl}" alt="QR code" width="300" height="300" />
-    <p><code>${invitation.url}</code></p>
-    <p><a href="/">Create another</a></p>
-  </body>
-</html>`);
+    res.type("html").send(
+      page(`
+      ${NEST_MARK}
+      <h1>Welcome to <em>Nido</em>!</h1>
+      <div class="qr-box">
+        <img class="qr" src="${invitation.qrDataUrl}" alt="QR code" width="260" height="260" />
+        <h3>Scan to create your Nido</h3>
+      </div>
+      <code>${invitation.url}</code>
+      <a class="admin-link" href="/">Create another</a>
+    `),
+    );
   })().catch((err) => {
     console.error("invitation creation failed:", err);
     res.status(500).send("Something went wrong creating the invitation — check the server logs.");
@@ -57,5 +226,5 @@ app.post("/invitations", (_req, res) => {
 startReceiptPolling(client, printer, RECEIPT_POLL_INTERVAL_MS);
 
 app.listen(PORT, () => {
-  console.log(`nido-demo-service listening on :${PORT} (invite API: ${INVITE_API_URL})`);
+  console.log(`nido-demo-service listening on http://localhost:${PORT} (invite API: ${INVITE_API_URL})`);
 });
