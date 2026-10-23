@@ -15,6 +15,10 @@
 # this blocks all account creation until it is (or until this script is run
 # again with an empty manager to turn the gate back off).
 #
+# This whole gate is TEMPORARY, for one conference's demo window — once it's
+# run with an empty manager afterward, see infra/relayer/README.md's
+# "Removing the Conference Demo Gate" for everything else that comes out.
+#
 # Unlike scripts/deploy-factory.sh (which only ever deploys a FRESH factory —
 # redeploying would change the factory's address, breaking every account
 # whose passkey binding commits to the current one), this is an in-place

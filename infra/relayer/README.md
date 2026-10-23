@@ -595,6 +595,43 @@ Before attempting this upgrade again:
   private to the org (not on the public `:8080`). Dashboards + alerts in `grafana.fly.dev`;
   alert definitions in `docs/RUNBOOKS.md` §5.
 
+## Removing the Conference Demo Gate
+
+This whole feature — invite-gated `create_account` — exists for one
+conference's demo window and is meant to come back out afterward, when
+account creation opens to anyone again. Two independent steps, in order:
+
+1. **Turn the gate off on-chain, first:** `scripts/set-factory-manager.sh
+   <admin-identity> "" testnet` — sets `manager` back to `None`. Do this
+   before anything below; it's the one step that actually matters for
+   users (normal "Get started" onboarding is blocked while a manager is
+   set — see "Known Limitations" above).
+2. **Remove the now-unused code**, once nobody needs to re-enable the gate:
+   - `infra/relayer/plugins/manager/` (whole directory)
+   - The `manager`/`manager-signer` entries in
+     `infra/relayer/config/config.json` (both the `relayers` and `signers`
+     arrays) and the `manager` entry in its `plugins` array
+   - The `@create_account`/`handle @create_account` block in
+     `infra/relayer/Caddyfile`, and `/create-account` out of `@preflight`'s
+     path list
+   - `scripts/set-factory-manager.sh` (keep it a little longer than the
+     rest if there's any chance the gate comes back for a future event)
+   - This README: the signer table row, "Direct-RPC plugins"'s `manager`
+     paragraph (keep the `funder` one), the two Known Limitations bullets
+     above, and this section
+   - Frontend (`packages/frontend/src/pages/new-account/index.astro`):
+     delete `submitCreateAccountViaManager` and
+     `submitCreateAccount`'s `if (invitationCode)` branch, collapsing it
+     back to calling what's now `submitCreateAccountViaChannels` directly
+   - Frontend (`packages/frontend/src/pages/demo/start/index.astro` and
+     `new-account/index.astro`): the `invitationCode` parsing/threading
+     through the apex → `<cAddress>` subdomain hop (harmless to leave, but
+     dead code once nothing reads it downstream)
+
+Turnkey wallet account cleanup (deactivating the `manager` signer itself)
+is optional — an unused signer with no `manager` set on any factory can't
+authorize anything, so there's no urgency there.
+
 ## Known Limitations
 
 - CORS is wildcard.
@@ -611,3 +648,10 @@ Before attempting this upgrade again:
   account) until `scripts/set-factory-manager.sh` is deliberately run — see
   that script's header before running it, since it blocks every account
   creation until the full flow above is proven working end to end.
+- The gate is intentionally temporary and global, not "demo accounts only":
+  there's one shared factory, and `manager.require_auth()` applies to every
+  `create_account` call once set, invite code or not. The plan is to run it
+  for the conference window only, then run `set-factory-manager.sh` again
+  with an empty manager to reopen account creation to anyone — see
+  "Removing the Conference Demo Gate" below for everything that comes with
+  it.

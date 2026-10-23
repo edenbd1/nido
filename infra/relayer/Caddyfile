@@ -73,6 +73,9 @@
 		rewrite * /api/v1/plugins/funder/call
 		reverse_proxy 127.0.0.1:8090
 	}
+	# TEMPORARY -- conference demo window only; comes out together with
+	# plugins/manager/, config.json's manager entries, and the frontend's
+	# invitationCode branch. See README.md's "Removing the Conference Demo Gate".
 	@create_account {
 		method POST
 		path /create-account

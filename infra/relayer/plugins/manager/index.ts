@@ -1,4 +1,10 @@
 /**
+ * TEMPORARY — for one conference's demo window only. Once the event is over
+ * and `scripts/set-factory-manager.sh` has turned the gate back off, this
+ * whole directory can be deleted — see infra/relayer/README.md's "Removing
+ * the Conference Demo Gate" for the full checklist (config.json, Caddyfile,
+ * and the frontend's invitationCode branch all come out together).
+ *
  * Entry point for the Nido "manager" relayer plugin: the enforcement point
  * for "only people who went through our onboarding (a valid, unused invite
  * code) can get a Nido account."

@@ -99,7 +99,7 @@
         "api_public_key": "02782029120f7408b3cac1fc9f57a5987dda59dba1458a5e5e815de60f5fd10a5c",
         "api_private_key": { "type": "env", "value": "TURNKEY_API_PRIVATE_KEY" },
         "organization_id": "ab5ca46a-17b2-47a1-95fa-4aff7d413d12",
-        "_comment": "PLACEHOLDER — private_key_id/public_key below are a locally-generated, never-funded keypair, not a real Turnkey wallet account. Create the real 'manager' wallet account in the Turnkey console (README.md's Turnkey Setup section) and replace both fields with what it reads back before this signer is ever used for real.",
+        "_comment": "TEMPORARY, conference-demo-only (see README.md's 'Removing the Conference Demo Gate'). PLACEHOLDER — private_key_id/public_key below are a locally-generated, never-funded keypair, not a real Turnkey wallet account. Create the real 'manager' wallet account in the Turnkey console (README.md's Turnkey Setup section) and replace both fields with what it reads back before this signer is ever used for real.",
         "private_key_id": "GAG54D2QJUCTUCFVQ4JH6UOL33NST52XBMD7N2UTBVPWURBKAJAWUMRL",
         "public_key": "c4b7cda5c258425893dfc7b3b49dcc3643d17ba93d37ad08df7af2c53cba35f3ff"
       }
