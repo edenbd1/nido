@@ -259,9 +259,11 @@ confirmation:
 &grant.1.limit=2&grant.1.limit_period=day&grant.1.to=CGAME…
 ```
 
-An unknown or malformed parameter, such as a bad `duration`, `limit`,
-`limit_period` or `grant.*` field, rejects the whole request, so a bad cap
-can't turn into an uncapped grant. Avoid `duration=none`: revoking is not
+A malformed value of a known parameter (`duration`, `signer` or `pubkey`, or a
+grant's `target`, `limit`, `limit_period` or `to`), or an unknown
+`grant.<i>.<field>` key, rejects the whole request, so a bad cap can't turn
+into an uncapped grant. Any other unknown parameter is ignored: a typo such as
+`limit_peroid=week` is dropped and the default (`day`) applies. Avoid `duration=none`: revoking is not
 available yet, so such a rule would never end.
 
 The answer is `?delegation=ok` or `?delegation=cancelled`. Opened as a popup,
