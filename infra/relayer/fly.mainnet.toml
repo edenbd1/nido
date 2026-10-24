@@ -55,10 +55,10 @@ primary_region = "iad"
   RATE_LIMIT_REQUESTS_PER_SECOND = "20"
   RATE_LIMIT_BURST_SIZE = "60"
   # See the file-level comment above — real XLM now, not testnet faucet money.
-  # 20 XLM/day: a circuit breaker sized for "recoverable worst-case drain"
+  # 100 XLM/day: a circuit breaker sized for "recoverable worst-case drain"
   # during a bounded one-time demo, not a usage estimate — raise + redeploy
   # live if real traffic needs more headroom.
-  FEE_LIMIT = "200000000"
+  FEE_LIMIT = "1000000000"
   FEE_RESET_PERIOD_SECONDS = "86400"
   # Same as testnet's value — this is a functional minimum (account reserve
   # + margin for a Soroban smart account), not a risk knob, so it isn't
