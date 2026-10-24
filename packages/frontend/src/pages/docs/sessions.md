@@ -108,7 +108,8 @@ classic wallets right away, and to a Nido account once its approvals cover
 | Making the key | "Preparing a key for this app…" while Friendbot funds it |
 | Sent to Nido, no answer recorded | **Check again**, **Ask Nido again**, **Start over** |
 
-N is the number of grants still missing: one passkey confirmation each. With
+N is the number of grants still missing. The template asks Nido for one grant
+per request, so each is its own passkey confirmation. With
 `actionsOnly`, the children stay visible and only their buttons and inputs
 wait for approval.
 
@@ -124,31 +125,40 @@ the rule's terms, not your app's reasons. Say:
 - what the app will do (the functions, in plain words);
 - for how long (the `duration`);
 - the most it can spend, and what one action costs;
-- why one rule has no cap, if one doesn't. Nido asks the owner to tick "Let this
-  key spend without any cap" for every grant without a `limit`, even one on a
-  contract that moves no money, so tell them before they get there.
+- why one rule has no cap, if one doesn't. For a grant without a `limit`, Nido
+  asks the owner to tick "Let this key spend without any cap", even on a
+  contract that moves no money, so tell them before they get there. A request
+  you build yourself can skip that tick with
+  [`limit=none`](#nidos-grant-page-parameters) on a grant that names no token
+  function.
 
 ## What the owner sees on Nido
 
-For each grant, the app sends the owner to
-`https://<account>.test.nido.fyi/security/delegate-doc/`. That page shows:
+The app sends the owner to
+`https://<account>.test.nido.fyi/security/delegate-doc/`. For each grant in the
+request, that page shows:
 
 - the contract and the app's key;
 - the functions the key may call;
 - the expiry, which the owner can change;
-- the spending cap, prefilled from your `limit`, or the "no cap" checkbox;
+- the spending cap in XLM ("Up to 2 XLM per day"), prefilled from your
+  `limit`, or the "no cap" checkbox; a `limit=none` grant that names no token
+  function reads "No cap — allows no token functions" instead;
+- for a grant that may call `transfer`, whom it pays: the one `to` address, or
+  "Any address";
 - what changes in the account's policy document, and the document itself.
 
 **Review & continue** opens Nido's signing page, the owner confirms with their
-passkey, and Nido's relayer applies the change. Then Nido sends the owner back
-to your app with `?delegation=ok`, and the template moves straight on to the
+passkey, and Nido's relayer applies the change. Then Nido hands `?delegation=ok`
+back to your app (see [the return](#nidos-grant-page-parameters) below), and
+the template moves straight on to the
 next grant if there is one. **Cancel** returns `?delegation=cancelled`: the
 template keeps the key and anything already approved, and the gate asks again
 next time.
 
-The grant page takes one contract per request, so a two-grant session is two
-pages and two passkey confirmations. One confirmation for several grants is
-<span class="docs-tag">Not available yet</span>.
+Nido's grant page can take up to 8 grants in one request and install them all
+with one passkey confirmation. The template still asks for one grant per
+request today, so its two-grant sample takes two pages and two confirmations.
 
 ## When the account says no
 
@@ -200,27 +210,71 @@ only `ok` and `cancelled` today; those two answers are
 If you build the session flow yourself instead of using the template, this is
 the request Nido's grant page takes. Open
 `https://<account>.test.nido.fyi/security/delegate-doc/` with the account's
-C-address in lower case as the subdomain, and these query parameters:
+C-address in lower case as the subdomain, and these query parameters.
+
+Every request names one key, one duration and one return trip:
 
 | Parameter | Required | Value |
 | --- | --- | --- |
 | `origin` | Yes | Your app's origin (`https://…` or `http://localhost:…`) |
-| `target` | Yes | The one contract (`C…`) the key may call |
-| `signer` | Yes | The session key's address (`G…` or `C…`); your app holds its secret |
 | `return` | Yes | Where to send the owner back; must be on `origin` |
+| `signer` | One of the two | A delegated key your app holds: its address (`G…` or `C…`) |
+| `pubkey` | One of the two | Your app's passkey: the 65-byte SEC1 uncompressed P-256 public key, in hex (`04…`, no `0x`). A `credential_id` parameter rejects the request; keep the credential ID in your app |
+| `duration` | No | `24h`, `7d`, `30d` or `none`; `30d` when absent. Every grant shares it |
+
+Each grant is one rule, with these fields:
+
+| Field | Required | Value |
+| --- | --- | --- |
+| `target` | Yes | The contract (`C…`) the key may call |
 | `functions` | No | Comma-separated function names; every function when absent |
-| `duration` | No | `24h`, `7d`, `30d` or `none`; `30d` when absent |
-| `limit` | No | A cap on `transfer` amounts, in decimal XLM |
-| `limit_period` | No | `day`, `week` or `30d`, only with `limit`; `day` when absent |
-| `label` | No | The rule's name; `session` when absent. The same name replaces that rule |
+| `limit` | No | A cap on `transfer` amounts in decimal XLM, or `none` |
+| `limit_period` | No | `day`, `week` or `30d`, only with a decimal `limit`; `day` when absent |
+| `to` | No | The only address (`G…` or `C…`) the grant's `transfer` may pay; only when `functions` is exactly `transfer`. Without it, a transfer grant can pay any address, up to its cap |
+| `label` | See below | The rule's name. The same name replaces that rule |
 
-A present but malformed `duration`, `limit` or `limit_period` rejects the whole
-request, so a bad cap can't turn into an uncapped grant. Avoid `none`: revoking
-is not available yet, so such a rule would never end.
+For one grant, pass the fields as plain parameters (`target=…&functions=…`);
+`label` defaults to `session`. For several, pass each as `grant.<i>.<field>`,
+numbered from 0 with no gaps, at most 8 grants. Each then needs its own
+`label`, and the plain grant fields may not appear alongside. Nido installs
+them all in one policy-document update (one `apply_doc`), with one passkey
+confirmation.
 
-Nido replaces the return URL's query with `?delegation=ok` or
-`?delegation=cancelled`. Treat `ok` as "the page finished", and read the
+Without `limit`, the owner chooses between a cap and ticking "Let this key
+spend without any cap". `limit=none` declares the rule uncapped and skips
+that tick, but only when the grant lists its `functions` and none of them is a
+token function (`transfer`, `transfer_from`, `approve`, `burn`, `burn_from`,
+`mint`, `clawback`, `set_authorized`, `set_admin`). Any other `limit=none`
+grant is shown as one without `limit`.
+
+A game whose `guess` moves a 1 XLM stake from the player, approved with one
+confirmation:
+
+```text
+?origin=https://game.example&return=https://game.example/play
+&pubkey=04…&duration=24h
+&grant.0.label=guess&grant.0.target=CGAME…&grant.0.functions=guess
+&grant.0.limit=none
+&grant.1.label=guess-xlm&grant.1.target=CXLM…&grant.1.functions=transfer
+&grant.1.limit=2&grant.1.limit_period=day&grant.1.to=CGAME…
+```
+
+An unknown or malformed parameter, such as a bad `duration`, `limit`,
+`limit_period` or `grant.*` field, rejects the whole request, so a bad cap
+can't turn into an uncapped grant. Avoid `duration=none`: revoking is not
+available yet, so such a rule would never end.
+
+The answer is `?delegation=ok` or `?delegation=cancelled`. Opened as a popup,
+the page (and the signing page after it) posts
+`{ source: "nido-wallet", search: "?delegation=ok" }` to the opener, targeting
+your `origin`, and closes. Opened as a page, it redirects to the return URL
+with that query added. Treat `ok` as "the page finished", and read the
 account's `installed_rules` to see what landed.
+
+The template doesn't use `pubkey` yet: its session key is an ed25519 key in
+the app origin's `localStorage`, funded by Friendbot, paying its own fees. A
+passkey session key in the template, and session calls paid by Nido's relayer,
+are <span class="docs-tag">Not available yet</span>.
 
 To sign later calls, build a CAP-0071 `AddressWithDelegates` authorization
 entry for the account that names the approved rule for each contract in the

@@ -61,9 +61,6 @@ These pages describe what works today. Some things you might expect are not
 built yet, and the pages say so where they come up:
 
 - **Revoking a session.** A grant lasts until its expiry.
-- **Approving several grants in one step.** Nido's grant page takes one
-  contract per request, so an app that needs two grants asks for two passkey
-  confirmations.
 - **Session calls through Nido's relayer.** The relayer can't submit them yet,
   so your app's session key pays the fees for its own calls.
 - **Mainnet.** Hosted Nido is testnet only.

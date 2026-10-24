@@ -109,7 +109,8 @@ The rules that follow from how the account checks a call:
   them to tick "Let this key spend without any cap". For a contract that moves
   no money, or one whose own code limits amounts, that is expected; say so in
   your app's explanation, because the wording alone can read as if the app
-  could spend anything.
+  could spend anything. A grant sent with `limit=none` whose `functions` name
+  no token function skips the tick.
 - **The same label replaces the rule.** Asking again with an existing label
   changes or renews that rule in place.
 

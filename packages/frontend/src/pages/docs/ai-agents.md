@@ -35,7 +35,11 @@ Paths in these files are on the host you fetched them from:
   not tied to the root contract invocation".
 - **`limit` caps cumulative `transfer` amounts, only on a grant whose `target`
   is that token** (`xlmTokenId` for XLM). A grant without `limit` makes Nido ask
-  the owner to accept "no cap".
+  the owner to accept "no cap". Nido's grant page skips that for `limit=none`
+  on a grant whose `functions` name no token function.
+- **The template asks for one grant per request**, so N grants are N passkey
+  confirmations. Nido's grant page takes up to 8 as `grant.<i>.<field>` with
+  one confirmation ([parameters](/docs/sessions/#nidos-grant-page-parameters)).
 - **`label` is at most 20 bytes**, and asking again with the same label
   replaces that rule. **`duration`** is `24h`, `7d` or `30d`.
 - **The session key is an ed25519 key in the app origin's `localStorage`**. The
@@ -110,7 +114,7 @@ Nido again**. The full table is in
 Don't design around these; they don't exist yet:
 
 - revoking a session (grants end at their expiry);
-- approving several grants in one passkey confirmation;
+- a passkey session key (`pubkey=`) in the template;
 - Nido's grant page answering `?delegation=error&code=…` or
   `?delegation=signed&payload=…` (it sends only `ok` and `cancelled`);
 - session calls through Nido's relayer (the session key pays);

@@ -83,9 +83,11 @@ confirmations)**.
    until …", and the game is playable.
 
 There are two confirmations because the game's calls need a rule for each
-contract they authorize: the game itself, and the XLM token it moves. Nido's
-grant page takes one contract per request. Approving several grants in one
-confirmation is <span class="docs-tag">Not available yet</span>.
+contract they authorize: the game itself, and the XLM token it moves. The
+template asks Nido for one grant per request. Nido's grant page can take
+several grants with one confirmation (see
+[Request a session](/docs/sessions/#nidos-grant-page-parameters)), but the
+template doesn't ask that way yet.
 
 ## 5. Make calls without prompts
 

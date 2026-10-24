@@ -61,10 +61,11 @@ this app…" meanwhile. Press once; pressing again doesn't help.
 ### One Approve, two passkey confirmations
 
 Expected when your call touches two contracts, such as your contract and the
-XLM token. Each contract needs a grant, and Nido's grant page takes one
-contract per request, so the owner confirms once per grant. The template's
-button says how many: "Approve with Nido (2 confirmations)". Approving several
-grants at once is <span class="docs-tag">Not available yet</span>.
+XLM token. Each contract needs a grant, and the template asks Nido for one
+grant per request, so the owner confirms once per grant. The template's button
+says how many: "Approve with Nido (2 confirmations)". Nido's grant page can
+take several grants with one confirmation if you build the request yourself
+(see [Request a session](/docs/sessions/#nidos-grant-page-parameters)).
 
 ### Nido asks to "spend without any cap" on a rule that can't spend
 
@@ -72,7 +73,10 @@ Nido asks the owner to tick this for every grant without a `limit`, including
 a grant on a contract that moves no money. The rule still allows only the
 functions it lists, on the one contract it names. Say so in your gate's
 explanation, so the owner isn't surprised by the wording. If the call moves
-tokens, put the cap on a grant whose `target` is the token.
+tokens, put the cap on a grant whose `target` is the token. A request you
+build yourself can send `limit=none` on a grant whose `functions` name no
+token function; Nido then skips the tick and shows "No cap — allows no token
+functions".
 
 ### The owner cancelled
 
