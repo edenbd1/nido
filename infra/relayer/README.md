@@ -89,6 +89,10 @@ Roles are `fund`, `fee-payer`, `channel-001` and `channel-002`; the script's
 mapping must match the table above. This adds XLM only: the relayer's daily fee
 budget is a separate limit that Friendbot does not change.
 
+The `funder` plugin gives each new testnet account 500 XLM from `fund`
+(`FUNDER_TOPUP_STROOPS` in `fly.toml`), so one Friendbot round funds about 20
+accounts. Run `friendbot-topup.sh fund N` before an onboarding burst.
+
 If keys are rotated, update this table and update all frontend build env that
 uses `PUBLIC_RELAYER_SIM_SOURCE`.
 
