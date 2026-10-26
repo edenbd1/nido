@@ -1,6 +1,6 @@
 # Integrator gotchas & error-code reference
 
-Notes from integrating Nido into a real dapp (Darwin — RWA baskets on Stellar, HackMeridian). This
+Notes from integrating Nido into a real dapp on Stellar (HackMeridian). This
 complements [`ADD-NIDO-TO-DAPP.md`](./ADD-NIDO-TO-DAPP.md) with the sharp edges we hit, the exact error
 codes, and the fixes — so the next integrator doesn't rediscover them.
 
@@ -39,7 +39,9 @@ codes, and the fixes — so the next integrator doesn't rediscover them.
   changes that rule — handy for renewal, easy to clobber by accident. Validate the 20-byte limit up front.
 - **The app key pays its own fees today.** The hosted relayer doesn't yet decode `Delegated` auth entries,
   so the session key (a classic G-address) needs funding (Friendbot on testnet). Keep it funded on mainnet.
-- **The grant ceremony navigates away.** Persist any in-flight action and resume it when the user returns.
+- **The grant ceremony navigates away — and returns to the app origin, not the page you left.** Persist any
+  in-flight action, and capture the full return URL and scroll position yourself: the redirect lands the user
+  back at the origin (e.g. `https://app.example.com`), not the exact page (e.g. `.../?b=DXSTK`) they were on.
 - **Grants always expire** (no "never"). Plan for re-granting; prefer the longest safe expiry.
 
 ## One-click multi-call actions
