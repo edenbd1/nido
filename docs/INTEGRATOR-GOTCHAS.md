@@ -4,20 +4,23 @@ Notes from integrating Nido into a real dapp on Stellar (HackMeridian). This
 complements [`ADD-NIDO-TO-DAPP.md`](./ADD-NIDO-TO-DAPP.md) with the sharp edges we hit, the exact error
 codes, and the fixes — so the next integrator doesn't rediscover them.
 
-## Two models — pick one deliberately
+## Session models
 
-1. **Per-transaction passkey (recommended default).** Every `signTransaction` opens the passkey ceremony:
-   one Touch ID per transaction, nothing signable kept on the client. This is the kit's basic flow and the
-   model to reach for first — it's the safest and, with platform authenticators, barely slower than a tap.
+For app-scoped calls (letting your app act for the account without a wallet popup each time), Nido has a
+good model and a legacy one — use the good one.
 
-2. **Session keys (a bounded exception).** The owner approves a Perch rule once that lets an app-held key
-   call a contract's listed functions until an expiry, optionally under a rolling cap; the app then signs
-   those calls without a prompt. Convenient, but it trades away per-transaction confirmation for the
-   grant's lifetime, and the app key is a secret the app must hold. Reserve it for flows where a per-tx tap
-   is genuinely impractical, label the trade-off clearly to the user, and keep expiries short.
+1. **Per-transaction passkey.** Every `signTransaction` opens the passkey ceremony: one device prompt per
+   transaction, nothing signable kept on the client. The kit's basic flow.
 
-> If you use session keys, **do not keep the app key in plaintext** (e.g. `localStorage`). Wrap it with the
-> platform authenticator and re-prompt per use (Apple-Pay-style), so an XSS or disk read can't sign.
+2. **Session passkeys (recommended).** The owner approves a Perch rule once that names an app-held WebAuthn
+   passkey (an `External` signer) for a contract's functions, optionally under a rolling cap. The device
+   then prompts on **every call**, and the passkey's private key **never leaves the authenticator** — so
+   nothing in the browser can spend. This is the model the current example ships.
+
+3. **Legacy ed25519 "session keys" (avoid).** An older path where the app holds a classic ed25519
+   `Delegated` key whose **secret sits in `localStorage`** and signs **silently** until the grant expires.
+   It's easy to land on from an older scaffold (watch for a `scaffold:nido-session:` secret). If you're on
+   it, migrate to session passkeys — same grant model, but nothing signable on disk.
 
 ## Error-code cheat sheet
 
@@ -30,18 +33,20 @@ codes, and the fixes — so the next integrator doesn't rediscover them.
 | Classic (non-Soroban) tx fails to sign | — | A passkey account is a C-address contract: it can't source/sign a classic Stellar operation. Build a Soroban transaction or auth entry. |
 | `signAuthEntry` rejects a valid-looking entry | — | The auth preimage's `signatureExpirationLedger` must be **≤ ~720 ledgers (~1h)** ahead and not past. Build auth entries with a short expiry. |
 
-## Session-key integration notes
+## Session rule notes (Perch)
 
 - **One rule per contract.** A call that touches several contracts (e.g. a vault `buy` + a USDC `transfer`)
   needs one rule per contract in the call's authorization tree. Build the tree with the app key named as a
   CAP-0071 `Delegated` signer (`authorizeEntry` / delegate entries).
 - **Rules are named by label (≤ 20 bytes) and replace in place.** Asking again for the same label renews or
   changes that rule — handy for renewal, easy to clobber by accident. Validate the 20-byte limit up front.
-- **The app key pays its own fees today.** The hosted relayer doesn't yet decode `Delegated` auth entries,
-  so the session key (a classic G-address) needs funding (Friendbot on testnet). Keep it funded on mainnet.
-- **The grant ceremony navigates away — and returns to the app origin, not the page you left.** Persist any
-  in-flight action, and capture the full return URL and scroll position yourself: the redirect lands the user
-  back at the origin (e.g. `https://app.example.com`), not the exact page (e.g. `.../?b=DXSTK`) they were on.
+- **On the legacy path, the app key pays its own fees.** The hosted relayer doesn't decode `Delegated`
+  entries, so the ed25519 session key (a classic G-address) needs funding. (Open question: are session-passkey
+  `External` calls relayed? If so, that's another reason to prefer them.)
+- **The session-passkey grant is a popup, not a full-page redirect.** It posts the result back without
+  tearing down your page. The legacy path's full-page redirect — which drops the user back at the app origin,
+  not the page they were on (so you must restore the URL + scroll yourself) — is one more reason to prefer
+  session passkeys.
 - **Grants always expire** (no "never"). Plan for re-granting; prefer the longest safe expiry.
 
 ## One-click multi-call actions
