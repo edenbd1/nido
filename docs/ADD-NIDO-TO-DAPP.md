@@ -182,3 +182,17 @@ Soroban status-message transaction. Files worth cribbing from:
 
 See also the module's own [README](../packages/stellar-wallets-kit-module/README.md)
 for the design rationale (transport, anti-redirect-abuse, kit interface version).
+
+## Session keys vs. one tap per transaction
+
+The flow above is **one passkey tap per transaction** — the recommended default. It keeps nothing
+signable on the client and asks the user to confirm each action, which is what a passkey account is for.
+
+Some apps reach for **session keys** (a Perch rule approved once that lets an app-held key sign a
+contract's functions silently until an expiry) to avoid a tap per action. That is a deliberate trade-off,
+not the default: it replaces per-transaction confirmation with a standing grant, and the app must hold a
+key. If you use it, keep expiries short, label the trade-off to the user, and **never store the app key in
+plaintext** — wrap it with the platform authenticator and re-prompt per use (Apple-Pay-style).
+
+For the session-key integration details and the error codes you'll meet (`#3002` / `#3014` / `#3223`, the
+11-rule cap, the `signAuthEntry` expiry limit), see [INTEGRATOR-GOTCHAS.md](./INTEGRATOR-GOTCHAS.md).
