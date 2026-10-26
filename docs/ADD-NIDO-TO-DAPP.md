@@ -183,16 +183,19 @@ Soroban status-message transaction. Files worth cribbing from:
 See also the module's own [README](../packages/stellar-wallets-kit-module/README.md)
 for the design rationale (transport, anti-redirect-abuse, kit interface version).
 
-## Session keys vs. one tap per transaction
+## Session passkeys vs. one tap per transaction
 
-The flow above is **one passkey tap per transaction** — the recommended default. It keeps nothing
-signable on the client and asks the user to confirm each action, which is what a passkey account is for.
+The flow above is **one passkey tap per transaction** — nothing signable on the client, the user confirms
+each action.
 
-Some apps reach for **session keys** (a Perch rule approved once that lets an app-held key sign a
-contract's functions silently until an expiry) to avoid a tap per action. That is a deliberate trade-off,
-not the default: it replaces per-transaction confirmation with a standing grant, and the app must hold a
-key. If you use it, keep expiries short, label the trade-off to the user, and **never store the app key in
-plaintext** — wrap it with the platform authenticator and re-prompt per use (Apple-Pay-style).
+To let your app make scoped calls without a wallet popup each time, use **session passkeys**: the owner
+approves a Perch rule once that names an app-held WebAuthn passkey (an `External` signer) for a contract's
+functions; the device then prompts on **every call**, and the passkey's private key never leaves the
+authenticator — so nothing in the browser can spend. This is what the example app ships.
 
-For the session-key integration details and the error codes you'll meet (`#3002` / `#3014` / `#3223`, the
-11-rule cap, the `signAuthEntry` expiry limit), see [INTEGRATOR-GOTCHAS.md](./INTEGRATOR-GOTCHAS.md).
+Avoid the legacy ed25519 **"session keys"** path, where the app holds a classic `Delegated` key whose
+secret sits in `localStorage` and signs silently until expiry. It's easy to inherit from an older scaffold;
+migrate to session passkeys if you find yourself on it.
+
+For the error codes you'll meet (`#3002` / `#3014` / `#3223`, the 11-rule cap, the `signAuthEntry` expiry
+limit), see [INTEGRATOR-GOTCHAS.md](./INTEGRATOR-GOTCHAS.md).
